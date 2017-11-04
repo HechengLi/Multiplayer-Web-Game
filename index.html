@@ -1,0 +1,56 @@
+<html>
+  <head>
+    <title>A Multiplayer Game</title>
+    <style>
+      #canvas {
+        width: 800px;
+        height: 600px;
+        border: 1px solid blue;
+        float: left;
+      }
+      .wrapper {
+        width: 1000px;
+        height: 800px;
+        border: 1px solid black;
+        border-radius: 5px;
+        margin: auto;
+        position: relative;
+      }
+      .log {
+        width: 195px;
+        height: 600px;
+        border: 1px solid red;
+        float: right;
+      }
+      .inventory {
+        width: 998px;
+        height: 195px;
+        border: 1px solid orange;
+        position: absolute;
+        bottom: 0;
+      }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="text/javascript">
+      function login(id) {
+        var socket = io();
+        socket.emit('login', {playerId: id});
+        document.getElementById("loggedin").innerHTML = id;
+      }
+    </script>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="log">
+        <form action="javascript:login(id.value)">
+          Id: <input type="text" name="id" id="id">
+          <input type="submit" value="Submit">
+        </form>
+        <p id="loggedin">Not logged in</p>
+      </div>
+      <canvas id="canvas"></canvas>
+      <div class="inventory"></div>
+    </div>
+  </body>
+  <script src="/static/game.js"></script>
+</html>
