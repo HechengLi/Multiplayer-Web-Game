@@ -1,8 +1,3 @@
-var socket = io();
-socket.on('message', function(data) {
-  console.log(data);
-});
-
 var movement = {
   up: false,
   down: false,
@@ -44,11 +39,6 @@ document.addEventListener('keyup', function(event) {
   }
 });
 
-setInterval(function() {
-  movement["id"] = document.getElementById('loggedin').innerHTML;
-  socket.emit('movement', movement);
-}, 1000 / 60);
-
 var canvas = document.getElementById('canvas');
 canvas.width = 800;
 canvas.height = 600;
@@ -63,3 +53,10 @@ socket.on('state', function(players) {
     context.fill();
   }
 });
+
+function connect() {
+  setInterval(function() {
+    movement["id"] = userId;
+    socket.emit('movement', movement);
+  }, 1000 / 60);
+}

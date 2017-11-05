@@ -1,0 +1,26 @@
+#canvas {
+  width: 800px;
+  height: 600px;
+  border: 1px solid blue;
+  float: left; }
+
+.inventory {
+  width: 998px;
+  height: 195px;
+  border: 1px solid orange;
+  position: absolute;
+  bottom: 0; }
+
+.wrapper {
+  width: 1000px;
+  height: 800px;
+  border: 1px solid black;
+  border-radius: 5px;
+  margin: auto;
+  position: relative; }
+
+.log {
+  width: 195px;
+  height: 600px;
+  border: 1px solid red;
+  float: right; }
