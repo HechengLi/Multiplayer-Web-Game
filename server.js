@@ -40,7 +40,7 @@ io.on('connection', function(socket) {
   });
 
   // login handler
-  socket.on('login', function(data) {
+  socket.on('login', function(data, fn) {
     console.log(socket.id + " wants to login as: " + data.playerId);
     if (players[data.playerId] == null) { // character doesn't exist yet
       players[data.playerId] = {
@@ -50,13 +50,16 @@ io.on('connection', function(socket) {
         online: true
       };
       onlineUsers[socket.id] = data.playerId;
+      fn(true);
       console.log("Player " + data.playerId + " has logged in");
     } else { // character already exist
       if (players[data.playerId].online) { // character already online
+        fn(false);
         console.log("Player " + data.playerId + " already logged in");
       } else { // character offline
         onlineUsers[socket.id] = data.playerId;
         players[data.playerId].online = true; // put character under client control
+        fn(true);
         console.log("Player " + data.playerId + " has logged in");
       }
     }
