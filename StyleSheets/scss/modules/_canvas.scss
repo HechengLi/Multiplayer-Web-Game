@@ -3,4 +3,10 @@
   height: 600px;
   border: 1px solid blue;
   float: left;
+
+  user-select: none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -o-user-select: none;
 }

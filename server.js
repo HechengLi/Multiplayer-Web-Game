@@ -47,6 +47,9 @@ io.on('connection', function(socket) {
         x: 300,
         y: 300,
         color: getRandomColor(),
+        status: 'idle',
+        clickX: 0,
+        clickY: 0,
         online: true
       };
       onlineUsers[socket.id] = data.playerId;
@@ -72,6 +75,26 @@ io.on('connection', function(socket) {
     if (data.up) { player.y -= 5; } // up
     if (data.right) { player.x += 5; } // right
     if (data.down) { player.y += 5; } // down
+  });
+
+  // attack handler
+  socket.on('attack', function(player, pos) {
+    if (players[player].status == 'idle') {
+      players[player].status = 'attack';
+      players[player].clickX = pos.x;
+      players[player].clickY = pos.y;
+      setTimeout(function() { players[player].status = 'idle';}, 500);
+    }
+  });
+
+  // shoot handler
+  socket.on('shoot', function(player, pos) {
+    if (players[player].status == 'idle') {
+      players[player].status = 'shoot';
+      players[player].clickX = pos.x;
+      players[player].clickY = pos.y;
+      setTimeout(function() { players[player].status = 'idle';}, 200);
+    }
   });
 
   // logout handler
