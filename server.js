@@ -45,12 +45,16 @@ io.on('connection', function(socket) {
     console.log(socket.id + " wants to login as: " + data.playerId);
     if (players[data.playerId] == null) { // character doesn't exist yet
       players[data.playerId] = {
+        maxHP: 100,
+        curHP: 100,
         x: 300,
         y: 300,
         color: getRandomColor(),
         status: 'idle',
         clickX: 0,
         clickY: 0,
+        pClickX: 0,
+        pClickY: 0,
         attackDuration: 0,
         online: true
       };
@@ -73,10 +77,10 @@ io.on('connection', function(socket) {
   // movement handler
   socket.on('movement', function(data) {
     var player = players[data.id] || {};
-    if (data.left) { player.x = (player.x-5 < 5)? 5 : player.x - 5; } // left
-    if (data.up) { player.y = (player.y-5 < 5)? 5 : player.y - 5; } // up
-    if (data.right) { player.x = (player.x+5 > 795)? 795 : player.x + 5; } // right
-    if (data.down) { player.y = (player.y+5 > 595)? 595 : player.y + 5; } // down
+    if (data.left) { player.x = (player.x-3 < 3)? 3 : player.x - 3; } // left
+    if (data.up) { player.y = (player.y-3 < 3)? 3 : player.y - 3; } // up
+    if (data.right) { player.x = (player.x+3 > 797)? 797 : player.x + 3; } // right
+    if (data.down) { player.y = (player.y+3 > 597)? 597 : player.y + 3; } // down
   });
 
   // attack handler
@@ -85,16 +89,19 @@ io.on('connection', function(socket) {
       players[player].status = 'attack';
       players[player].clickX = pos.x;
       players[player].clickY = pos.y;
+      players[player].pClickX = players[player].x;
+      players[player].pClickY = players[player].y;
+      attackCollisionCheck(player, pos);
       var attackInterval = setInterval(function() {
         if (players[player].attackDuration < 100) {
-          players[player].attackDuration+=3;
+          players[player].attackDuration+=5;
         } else {
           players[player].attackDuration = 100;
         }
-      }, 500/100);
+      }, 400/100);
       setTimeout(function() { players[player].status = 'idle';
                               players[player].attackDuration = 0;
-                              clearInterval(attackInterval); }, 500);
+                              clearInterval(attackInterval); }, 400);
     }
   });
 
@@ -106,9 +113,11 @@ io.on('connection', function(socket) {
       players[player].clickY = pos.y;
       var diffX = pos.x - players[player].x;
       var diffY = pos.y - players[player].y;
-      projectiles.push({x: players[player].x, y: players[player].y,
-                        dirX: diffX/(Math.abs(diffX) + Math.abs(diffY)),
-                        dirY: diffY/(Math.abs(diffX) + Math.abs(diffY)),
+      var dirX = diffX/(Math.abs(diffX) + Math.abs(diffY));
+      var dirY = diffY/(Math.abs(diffX) + Math.abs(diffY));
+      projectiles.push({x: players[player].x + 20*dirX, y: players[player].y + 20*dirY,
+                        dirX: dirX, dirY: dirY,
+                        bounce: 0,
                         owner: player});
       setTimeout(function() { players[player].status = 'idle';}, 200);
     }
@@ -116,9 +125,11 @@ io.on('connection', function(socket) {
 
   // logout handler
   socket.on('logout', function(data) {
-    players[onlineUsers[socket.id]].online = false; // log character off
-    console.log(socket.id + " as player: " + onlineUsers[socket.id] + " has logged out");
-    delete onlineUsers[socket.id];
+    if (players[onlineUsers[socket.id]] != null) {
+      players[onlineUsers[socket.id]].online = false; // log character off
+      console.log(socket.id + " as player: " + onlineUsers[socket.id] + " has logged out");
+      delete onlineUsers[socket.id];
+    }
   });
 
   // disconnect handler
@@ -131,16 +142,103 @@ io.on('connection', function(socket) {
   });
 });
 
+// check for attack collision
+function attackCollisionCheck(player, pos) {
+  var x = players[player].clickX - players[player].pClickX;
+  var y = players[player].pClickY - players[player].clickY;
+  var h = 0;
+  var arcstart = 0;
+  if ((x > 0)&&(y < 0)) {
+    h = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+    var arcstart = Math.acos(x/h);
+  } else if ((x < 0)&&(y < 0)) {
+    h = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+    var arcstart = Math.acos(x/h);
+  } else if ((x < 0)&&(y > 0)) {
+    h = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+    var arcstart = Math.PI * 2 - Math.acos(x/h);
+  } else if ((x > 0)&&(y > 0)) {
+    h = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+    var arcstart = Math.PI * 2 - Math.acos(x/h);
+  }
+  arcstart -= 1;
+  var arcend = arcstart + 2;
+  for (var otherPlayer in players) {
+    if (otherPlayer != player) {
+      var x2 = players[otherPlayer].x - players[player].x;
+      var y2 = players[player].y - players[otherPlayer].y;
+      var h2 = Math.sqrt(Math.pow(x2, 2) + Math.pow(y2, 2));;
+      var angle = 0;
+      if ((x2 > 0)&&(y2 < 0)) {
+        angle = Math.acos(x2/h2);
+      } else if ((x2 < 0)&&(y2 < 0)) {
+        angle = Math.acos(x2/h2);
+      } else if ((x2 < 0)&&(y2 > 0)) {
+        angle = Math.PI * 2 - Math.acos(x2/h2);
+      } else if ((x2 > 0)&&(y2 > 0)) {
+        angle = Math.PI * 2 - Math.acos(x2/h2);
+      }
+      if (((angle > arcstart-0.4)&&(angle < arcend+0.4))
+            &&((h2 > 7)&&(h2 < 45))) {
+        players[otherPlayer].curHP -= 5;
+        players[otherPlayer].curHP = (players[otherPlayer].curHP<0)?0:players[otherPlayer].curHP;
+      }
+    }
+  }
+
+  for (var i = 0; i < projectiles.length; i++) {
+    var x2 = projectiles[i].x - players[player].x;
+    var y2 = players[player].y - projectiles[i].y;
+    var h2 = Math.sqrt(Math.pow(x2, 2) + Math.pow(y2, 2));;
+    var angle = 0;
+    if ((x2 > 0)&&(y2 < 0)) {
+      angle = Math.acos(x2/h2);
+    } else if ((x2 < 0)&&(y2 < 0)) {
+      angle = Math.acos(x2/h2);
+    } else if ((x2 < 0)&&(y2 > 0)) {
+      angle = Math.PI * 2 - Math.acos(x2/h2);
+    } else if ((x2 > 0)&&(y2 > 0)) {
+      angle = Math.PI * 2 - Math.acos(x2/h2);
+    }
+    if (((angle > arcstart-0.4)&&(angle < arcend+0.4))
+          &&((h2 > 0)&&(h2 < 50))) {
+      projectiles[i].dirX *= -1;
+      projectiles[i].dirY *= -1;
+    }
+  }
+}
+
 // Send state of game to all clients
 setInterval(function() {
   for (var i = 0; i < projectiles.length; i++) {
+    var projectile = projectiles[i];
     projectiles[i].x += 5*projectiles[i].dirX;
     projectiles[i].y += 5*projectiles[i].dirY;
-    if ((projectiles[i].x > 800)||(projectiles[i].x < 0)
-        ||(projectiles[i].y > 600)||(projectiles[i].y < 0)) {
-        projectiles.splice(i, 1);
-        i--;
+
+    if ((projectiles[i].x > 795)||(projectiles[i].x < 0)
+        ||(projectiles[i].y > 595)||(projectiles[i].y < 0)) {
+        if (((projectiles[i].x > 795)||(projectiles[i].x < 0))&&(projectiles[i].bounce < 3)) {
+          projectiles[i].dirX*=-1;
+          projectiles[i].bounce++;
+        } else if (((projectiles[i].y > 595)||(projectiles[i].y < 0))&&(projectiles[i].bounce < 3)) {
+          projectiles[i].dirY*=-1;
+          projectiles[i].bounce++;
+        } else {
+          projectiles.splice(i, 1);
+          i--;
+        }
+      }
+      for (var playerId in players) {
+        var x = projectile.x - players[playerId].x;
+        var y = players[playerId].y - projectile.y;
+        var h = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+        if (h < 7) {
+          players[playerId].curHP -= 2;
+          players[playerId].curHP = (players[playerId].curHP<0)?0:players[playerId].curHP;
+          projectiles.splice(i, 1);
+          i--;
+        }
       }
   }
-  io.sockets.emit('state', players, projectiles);``
+  io.sockets.emit('state', players, projectiles);
 }, 1000 / 60);
